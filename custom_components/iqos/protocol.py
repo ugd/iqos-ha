@@ -1,8 +1,10 @@
 """IQOS BLE protocol helpers.
 
-This module ports the frame constants and parsers from the GPL-3.0
-`V-VX/iqos` Rust crate so Home Assistant can talk to IQOS devices through
-Bleak directly.
+This module ports the frame constants and parsers from the GPL-3.0 Rust
+`hauntedfail/iqos` crate, which is the protocol source of truth for IQOS
+command encoding, response parsing, and capability gating. Home Assistant keeps
+the BLE transport, config flow, and entity layer in Python so the custom
+integration remains HACS-installable.
 """
 
 from __future__ import annotations

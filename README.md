@@ -156,6 +156,9 @@ This integration opens short BLE connections for updates and commands. If a
 device is asleep, out of range, or no connectable Bluetooth proxy can reach it,
 its entities will become unavailable until Home Assistant can reach it again.
 
-The protocol constants and parsers are based on the GPL-3.0
-[`V-VX/iqos`](https://github.com/V-VX/iqos) Rust project and the
-[`nsoclub/iqos_cli`](https://github.com/nsoclub/iqos_cli) CLI that uses it.
+The device protocol source of truth is the GPL-3.0
+[`hauntedfail/iqos`](https://github.com/hauntedfail/iqos) Rust crate. It owns
+the IQOS BLE UUIDs, command encoding, response parsing, and capability matrix.
+This Home Assistant integration keeps a Python port of the protocol layer so it
+can remain installable through HACS without compiling or packaging a Rust
+extension for every Home Assistant platform.
