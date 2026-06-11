@@ -93,25 +93,38 @@ It does not connect to every nearby Bluetooth device automatically; unknown
 devices are shown as diagnostics and can be selected manually only if you
 recognize the IQOS.
 
-For IQOS ILUMA / ILUMA i devices:
+For IQOS ILUMA / ILUMA i / ILUMA ONE devices:
 
 1. Keep the IQOS close to the Bluetooth proxy.
-2. If it has a holder and pocket charger, place the holder in the charger.
-3. Turn the device off: press and hold the main button for about 5 seconds, then
-   release.
-4. Turn it back on: press and hold the main button again for about 5 seconds,
+2. Turn the device on: press and hold the ON/OFF button for about 4 seconds,
    then release.
-5. Wait for the device lights to pulse/blink.
-6. In Home Assistant, go to **Settings > Devices & services > Add integration >
+3. Wait for the device lights to turn on slowly or pulse.
+4. In Home Assistant, go to **Settings > Devices & services > Add integration >
    IQOS**.
+5. Select **Search Bluetooth devices**.
+
+If the device does not appear, reset Bluetooth advertising and retry quickly:
+
+1. Press the device button twice quickly.
+2. Press it a third time and hold until the LEDs pulse.
+3. Keep the IQOS close to the Bluetooth proxy.
+4. Start **Search Bluetooth devices** again immediately.
 
 If the device does not appear:
 
 - Move it closer to the ESPHome Bluetooth Proxy.
 - Make sure `bluetooth_proxy.active` is enabled.
 - Remove old IQOS Bluetooth pairings from phones/computers nearby.
+- Do not connect it from phone or computer Bluetooth Settings before adding it
+  in Home Assistant.
 - Restart the IQOS and retry the add flow.
 - Add only one IQOS at a time.
+
+The IQOS App/WebApp is not required for this integration. If you use it only to
+confirm that the IQOS can enter Bluetooth setup mode, start **Add device** /
+**Connect device** there, but do not finish pairing from the phone's Bluetooth
+Settings. On iPhone, the IQOS WebApp may need a Web Bluetooth browser such as
+Bluefy in countries where Safari/Chrome cannot use Web Bluetooth.
 
 Older IQOS models with a dedicated Bluetooth button can use that button instead:
 press the Bluetooth button for about 3 seconds until the Bluetooth status light
