@@ -23,12 +23,10 @@ from .protocol import (
     ALL_DIAGNOSIS_COMMANDS,
     AUTOSTART_STATUS_SUBTYPE,
     BATTERY_CHARACTERISTIC_UUID,
-    DEVICE_INFO_SERVICE_UUID,
     DeviceInfo,
     DeviceModel,
     DiagnosticData,
     FirmwareKind,
-    IQOS_CORE_SERVICE_UUID,
     LOAD_AUTOSTART_COMMAND,
     LOAD_BATTERY_VOLTAGE_COMMAND,
     LOAD_BRIGHTNESS_COMMAND,
@@ -154,7 +152,6 @@ class IqosBleSession:
                 self._name,
                 self._disconnected,
                 ble_device_callback=self._ble_device,
-                services=[DEVICE_INFO_SERVICE_UUID, IQOS_CORE_SERVICE_UUID],
                 timeout=CONNECT_TIMEOUT,
             )
         except Exception as err:
