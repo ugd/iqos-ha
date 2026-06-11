@@ -82,6 +82,26 @@ service UUIDs, and manufacturer IDs. If the precheck fails, verify that:
 - The proxy appears under **Settings > Devices & services > Bluetooth**.
 - Home Assistant was restarted after adding or updating the proxy.
 
+## Debug Logging
+
+If the IQOS is discovered but setup fails during connection, enable debug
+logging and retry the setup:
+
+```yaml
+logger:
+  default: info
+  logs:
+    custom_components.iqos: debug
+    bleak_retry_connector: debug
+    homeassistant.components.bluetooth: debug
+    homeassistant.components.esphome.bluetooth: debug
+```
+
+Useful log lines include the IQOS address, Bluetooth proxy source, RSSI, service
+UUIDs, connection stage, command writes, notifications, and GATT connection
+errors. A very low RSSI, such as around `-96`, usually means the proxy can see
+advertisements but cannot keep a stable GATT connection.
+
 ## Put IQOS In Bluetooth Pairing Mode
 
 Home Assistant does not need classic phone-style pairing, but the IQOS device

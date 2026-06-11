@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 import voluptuous as vol
@@ -15,6 +16,8 @@ from homeassistant.data_entry_flow import FlowResult
 
 from .const import CONF_DISCOVERY_NAME, CONF_MODEL, DOMAIN
 from .protocol import IQOS_CORE_SERVICE_UUID, is_iqos_name, model_from_local_name
+
+_LOGGER = logging.getLogger(__name__)
 
 SCAN_SECONDS = 12
 NEARBY_DEVICE_LIMIT = 12
@@ -52,8 +55,16 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle a Bluetooth discovery."""
         if not _is_iqos_service_info(discovery_info):
+            _LOGGER.debug(
+                "Ignoring non-IQOS Bluetooth discovery: %s",
+                _service_info_debug(discovery_info),
+            )
             return self.async_abort(reason="not_supported")
 
+        _LOGGER.debug(
+            "Handling IQOS Bluetooth discovery: %s",
+            _service_info_debug(discovery_info),
+        )
         self._discovery_info = discovery_info
         await self.async_set_unique_id(_normalize_address(discovery_info.address))
         self._abort_if_unique_id_configured(
@@ -75,6 +86,10 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="unknown")
 
         if user_input is not None:
+            _LOGGER.debug(
+                "Creating IQOS entry from Bluetooth discovery: %s",
+                _service_info_debug(self._discovery_info),
+            )
             return self._create_entry_from_service_info(self._discovery_info)
 
         self._set_confirm_only()
@@ -97,6 +112,7 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Show setup choices and pairing instructions."""
         if not self._has_connectable_bluetooth():
+            _LOGGER.debug("No connectable Bluetooth scanner available for IQOS setup")
             return self.async_show_menu(
                 step_id="bluetooth_unavailable",
                 menu_options=BLUETOOTH_UNAVAILABLE_MENU,
@@ -112,12 +128,14 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Search for nearby IQOS Bluetooth devices."""
         if not self._has_connectable_bluetooth():
+            _LOGGER.debug("No connectable Bluetooth scanner available for IQOS search")
             return self.async_show_menu(
                 step_id="bluetooth_unavailable",
                 menu_options=BLUETOOTH_UNAVAILABLE_MENU,
             )
 
         if self._scan_task is None:
+            _LOGGER.debug("Starting IQOS Bluetooth scan for %s seconds", SCAN_SECONDS)
             self._scan_task = self.hass.async_create_task(self._async_scan_devices())
 
         if not self._scan_task.done():
@@ -140,8 +158,17 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Show Bluetooth scan results."""
         if self._discovered:
+            _LOGGER.debug(
+                "IQOS scan found %s matched device(s): %s",
+                len(self._discovered),
+                self._discovered,
+            )
             return await self.async_step_select_device()
 
+        _LOGGER.debug(
+            "IQOS scan found no matched devices; nearby devices: %s",
+            [_service_info_debug(info) for info in self._sorted_nearby_devices()],
+        )
         menu_options = {
             "search": MENU_SEARCH_AGAIN,
             "manual": MENU_MANUAL,
@@ -170,6 +197,7 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             address = user_input[CONF_ADDRESS].strip()
+            _LOGGER.debug("Selected discovered IQOS Bluetooth address: %s", address)
             await self.async_set_unique_id(_normalize_address(address))
             self._abort_if_unique_id_configured()
 
@@ -196,6 +224,7 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             address = user_input[CONF_ADDRESS].strip()
+            _LOGGER.debug("Selected nearby Bluetooth address as IQOS: %s", address)
             await self.async_set_unique_id(_normalize_address(address))
             self._abort_if_unique_id_configured()
 
@@ -219,6 +248,9 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle manual setup from a Bluetooth address."""
         if user_input is not None:
             address = user_input[CONF_ADDRESS].strip()
+            _LOGGER.debug(
+                "Creating manual IQOS entry for Bluetooth address: %s", address
+            )
             await self.async_set_unique_id(_normalize_address(address))
             self._abort_if_unique_id_configured()
 
@@ -255,6 +287,10 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             self._record_service_info(service_info)
             if _is_iqos_service_info(service_info):
+                _LOGGER.debug(
+                    "IQOS advertisement received during scan: %s",
+                    _service_info_debug(service_info),
+                )
                 iqos_found.set()
 
         unload = bluetooth.async_register_callback(
@@ -272,6 +308,11 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             unload()
 
         self._record_current_service_info()
+        _LOGGER.debug(
+            "Finished IQOS Bluetooth scan: nearby=%s matched=%s",
+            len(self._nearby),
+            len(self._discovered),
+        )
 
     @callback
     def _discovered_options(self) -> dict[str, str]:
@@ -428,6 +469,18 @@ def _nearby_device_label(
     return (
         f"- {label}; services: {service_uuids}; "
         f"manufacturer IDs: {manufacturer_ids}"
+    )
+
+
+@callback
+def _service_info_debug(service_info: bluetooth.BluetoothServiceInfoBleak) -> str:
+    """Return compact Bluetooth service info for debug logging."""
+    return (
+        f"address={service_info.address} name={_advertised_name(service_info)!r} "
+        f"source={service_info.source} rssi={service_info.rssi} "
+        f"connectable={service_info.connectable} "
+        f"service_uuids={service_info.service_uuids} "
+        f"manufacturer_ids={list(service_info.manufacturer_data)}"
     )
 
 

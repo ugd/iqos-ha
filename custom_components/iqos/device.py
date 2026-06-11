@@ -80,6 +80,7 @@ from .protocol import (
 
 _LOGGER = logging.getLogger(__name__)
 _T = TypeVar("_T")
+WEAK_RSSI_THRESHOLD = -90
 
 
 class IqosError(Exception):
@@ -136,18 +137,62 @@ class IqosBleSession:
         """Connect and subscribe to IQOS SCP notifications."""
         ble_device = self._ble_device()
         if ble_device is None:
-            raise IqosConnectionError(f"{self._name} is not reachable by a connectable adapter")
+            _LOGGER.warning(
+                "IQOS %s (%s) is not reachable by a connectable Bluetooth adapter",
+                self._name,
+                self._address,
+            )
+            raise IqosConnectionError(
+                f"{self._name} is not reachable by a connectable adapter"
+            )
 
-        self._client = await establish_connection(
-            BleakClientWithServiceCache,
-            ble_device,
+        self._log_last_service_info("Connecting to")
+        try:
+            self._client = await establish_connection(
+                BleakClientWithServiceCache,
+                ble_device,
+                self._name,
+                self._disconnected,
+                ble_device_callback=self._ble_device,
+                services=[DEVICE_INFO_SERVICE_UUID, IQOS_CORE_SERVICE_UUID],
+                timeout=CONNECT_TIMEOUT,
+            )
+        except Exception as err:
+            _LOGGER.warning(
+                "Failed to connect to IQOS %s (%s): %s",
+                self._name,
+                self._address,
+                err,
+                exc_info=True,
+            )
+            raise IqosConnectionError(
+                f"failed to connect to {self._name}: {err}"
+            ) from err
+
+        _LOGGER.debug("Connected to IQOS %s (%s)", self._name, self._address)
+        try:
+            await self._client.start_notify(
+                SCP_CONTROL_CHARACTERISTIC_UUID, self._notification
+            )
+        except Exception as err:
+            _LOGGER.warning(
+                "Connected to IQOS %s (%s), but failed to start notifications: %s",
+                self._name,
+                self._address,
+                err,
+                exc_info=True,
+            )
+            await self._client.disconnect()
+            self._client = None
+            raise IqosConnectionError(
+                f"failed to subscribe to IQOS notifications for {self._name}: {err}"
+            ) from err
+
+        _LOGGER.debug(
+            "Subscribed to IQOS notifications for %s (%s)",
             self._name,
-            self._disconnected,
-            ble_device_callback=self._ble_device,
-            services=[DEVICE_INFO_SERVICE_UUID, IQOS_CORE_SERVICE_UUID],
-            timeout=CONNECT_TIMEOUT,
+            self._address,
         )
-        await self._client.start_notify(SCP_CONTROL_CHARACTERISTIC_UUID, self._notification)
         return self
 
     async def __aexit__(self, *_exc_info: object) -> None:
@@ -158,10 +203,18 @@ class IqosBleSession:
         try:
             await client.stop_notify(SCP_CONTROL_CHARACTERISTIC_UUID)
         except Exception as err:  # noqa: BLE cleanup should not mask the real error.
-            _LOGGER.debug("Failed to stop IQOS notifications for %s: %s", self._name, err)
+            _LOGGER.debug(
+                "Failed to stop IQOS notifications for %s: %s",
+                self._name,
+                err,
+            )
         finally:
-            await client.disconnect()
-            bluetooth.async_clear_advertisement_history(self._hass, self._address)
+            try:
+                await client.disconnect()
+            except Exception as err:  # noqa: BLE cleanup should not mask real error.
+                _LOGGER.debug("Failed to disconnect IQOS %s: %s", self._name, err)
+            self._client = None
+            _LOGGER.debug("Disconnected from IQOS %s (%s)", self._name, self._address)
 
     def _ble_device(self) -> Any | None:
         """Return the currently reachable connectable BLE device."""
@@ -172,10 +225,18 @@ class IqosBleSession:
     def _disconnected(self, _client: BleakClientWithServiceCache) -> None:
         """Handle unexpected disconnection."""
         self._client = None
+        _LOGGER.debug("IQOS %s (%s) disconnected", self._name, self._address)
 
     def _notification(self, _sender: Any, data: bytearray) -> None:
         """Queue an SCP notification frame."""
-        self._notification_queue.put_nowait(bytes(data))
+        payload = bytes(data)
+        _LOGGER.debug(
+            "IQOS %s (%s) notification: %s",
+            self._name,
+            self._address,
+            payload.hex(" "),
+        )
+        self._notification_queue.put_nowait(payload)
 
     @property
     def client(self) -> BleakClientWithServiceCache:
@@ -186,17 +247,31 @@ class IqosBleSession:
 
     async def read_battery_level(self) -> int:
         """Read battery level from the IQOS GATT characteristic."""
+        _LOGGER.debug(
+            "Reading IQOS battery level for %s (%s)",
+            self._name,
+            self._address,
+        )
         return parse_battery_level(
             bytes(await self.client.read_gatt_char(BATTERY_CHARACTERISTIC_UUID))
         )
 
     async def read_device_info(self) -> DeviceInfo:
         """Read standard BLE Device Information characteristics."""
+        _LOGGER.debug(
+            "Reading IQOS device information for %s (%s)",
+            self._name,
+            self._address,
+        )
         return DeviceInfo(
             model_number=await self._read_text(MODEL_NUMBER_CHARACTERISTIC_UUID),
             serial_number=await self._read_text(SERIAL_NUMBER_CHARACTERISTIC_UUID),
-            software_revision=await self._read_text(SOFTWARE_REVISION_CHARACTERISTIC_UUID),
-            manufacturer_name=await self._read_text(MANUFACTURER_NAME_CHARACTERISTIC_UUID),
+            software_revision=await self._read_text(
+                SOFTWARE_REVISION_CHARACTERISTIC_UUID
+            ),
+            manufacturer_name=await self._read_text(
+                MANUFACTURER_NAME_CHARACTERISTIC_UUID
+            ),
         )
 
     async def _read_text(self, characteristic_uuid: str) -> str | None:
@@ -215,6 +290,12 @@ class IqosBleSession:
 
     async def send(self, command: bytes) -> None:
         """Send an IQOS command that does not require a response frame."""
+        _LOGGER.debug(
+            "IQOS %s (%s) write: %s",
+            self._name,
+            self._address,
+            command.hex(" "),
+        )
         await self.client.write_gatt_char(
             SCP_CONTROL_CHARACTERISTIC_UUID, command, response=True
         )
@@ -225,18 +306,70 @@ class IqosBleSession:
             self._drain_notifications()
             await self.send(command)
             try:
-                return await asyncio.wait_for(
+                response = await asyncio.wait_for(
                     self._notification_queue.get(), timeout
                 )
+                _LOGGER.debug(
+                    "IQOS %s (%s) response: %s",
+                    self._name,
+                    self._address,
+                    response.hex(" "),
+                )
+                return response
             except TimeoutError as err:
+                _LOGGER.warning(
+                    "No IQOS response notification received for %s (%s) after %.1fs",
+                    self._name,
+                    self._address,
+                    timeout,
+                )
                 raise IqosConnectionError(
                     f"no IQOS response notification received for {self._name}"
                 ) from err
 
     def _drain_notifications(self) -> None:
         """Discard stale notification frames before a new request."""
+        drained = 0
         while not self._notification_queue.empty():
             self._notification_queue.get_nowait()
+            drained += 1
+        if drained:
+            _LOGGER.debug(
+                "Discarded %s stale IQOS notification(s) for %s (%s)",
+                drained,
+                self._name,
+                self._address,
+            )
+
+    def _log_last_service_info(self, action: str) -> None:
+        """Log Home Assistant's last Bluetooth advertisement for the IQOS."""
+        service_info = bluetooth.async_last_service_info(
+            self._hass, self._address, connectable=True
+        )
+        if service_info is None:
+            _LOGGER.debug(
+                "%s IQOS %s (%s) without cached connectable service info",
+                action,
+                self._name,
+                self._address,
+            )
+            return
+
+        _LOGGER.debug(
+            (
+                "%s IQOS %s (%s): source=%s name=%s rssi=%s connectable=%s "
+                "service_uuids=%s manufacturer_ids=%s"
+            ),
+            action,
+            self._name,
+            self._address,
+            service_info.source,
+            service_info.name,
+            service_info.rssi,
+            service_info.connectable,
+            service_info.service_uuids,
+            list(service_info.manufacturer_data),
+        )
 
 
 class IqosDeviceClient:
@@ -254,6 +387,7 @@ class IqosDeviceClient:
 
     async def async_read_data(self) -> IqosData:
         """Read a full state snapshot from the device."""
+        _LOGGER.debug("Starting IQOS data update for %s (%s)", self.name, self.address)
         service_info = bluetooth.async_last_service_info(
             self._hass, self.address, connectable=True
         )
@@ -263,6 +397,35 @@ class IqosDeviceClient:
             or self.name
         )
         rssi = getattr(service_info, "rssi", None)
+        if service_info is None:
+            _LOGGER.debug(
+                "No cached connectable Bluetooth service info for IQOS %s (%s)",
+                self.name,
+                self.address,
+            )
+        else:
+            _LOGGER.debug(
+                (
+                    "Using cached IQOS service info for %s (%s): source=%s "
+                    "name=%s rssi=%s service_uuids=%s"
+                ),
+                self.name,
+                self.address,
+                service_info.source,
+                service_info.name,
+                service_info.rssi,
+                service_info.service_uuids,
+            )
+            if rssi is not None and rssi <= WEAK_RSSI_THRESHOLD:
+                _LOGGER.warning(
+                    (
+                        "IQOS %s (%s) RSSI is very weak (%s dBm); "
+                        "BLE GATT connection may fail"
+                    ),
+                    self.name,
+                    self.address,
+                    rssi,
+                )
 
         async with IqosBleSession(self._hass, self.address, name) as session:
             device_info = await self._optional(session.read_device_info, DeviceInfo())
@@ -281,6 +444,17 @@ class IqosDeviceClient:
             await self._read_status(session, data)
             await self._read_diagnosis(session, data)
             await self._read_settings(session, data)
+            _LOGGER.debug(
+                (
+                    "Finished IQOS data update for %s (%s): model=%s "
+                    "battery=%s rssi=%s"
+                ),
+                data.name,
+                data.address,
+                data.model,
+                data.battery_level,
+                data.rssi,
+            )
             return data
 
     async def _read_status(self, session: IqosBleSession, data: IqosData) -> None:
@@ -350,7 +524,9 @@ class IqosDeviceClient:
 
     async def async_set_flexbattery_mode(self, mode: str) -> None:
         """Set FlexBattery mode."""
-        await self._send_commands((flexbattery_mode_command(mode), LOAD_FLEXBATTERY_COMMAND))
+        await self._send_commands(
+            (flexbattery_mode_command(mode), LOAD_FLEXBATTERY_COMMAND)
+        )
 
     async def async_set_pause_mode(self, enabled: bool) -> None:
         """Enable or disable Pause Mode."""
@@ -415,6 +591,12 @@ class IqosDeviceClient:
 
     async def _send_commands(self, commands: tuple[bytes, ...]) -> None:
         """Open a short BLE session and send a command sequence."""
+        _LOGGER.debug(
+            "Sending %s IQOS command(s) to %s (%s)",
+            len(commands),
+            self.name,
+            self.address,
+        )
         async with IqosBleSession(self._hass, self.address, self.name) as session:
             for command in commands:
                 await session.send(command)

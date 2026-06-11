@@ -47,11 +47,21 @@ class IqosCoordinator(DataUpdateCoordinator[IqosData]):
 
     async def _async_update_data(self) -> IqosData:
         """Fetch data from the IQOS device."""
+        _LOGGER.debug("Requesting IQOS update for %s", self.address)
         try:
-            return await self.client.async_read_data()
+            data = await self.client.async_read_data()
+            _LOGGER.debug(
+                "IQOS update succeeded for %s: battery=%s rssi=%s",
+                self.address,
+                data.battery_level,
+                data.rssi,
+            )
+            return data
         except IqosError as err:
+            _LOGGER.warning("IQOS update failed for %s: %s", self.address, err)
             raise UpdateFailed(str(err)) from err
         except Exception as err:
+            _LOGGER.exception("Unexpected IQOS update failure for %s", self.address)
             raise UpdateFailed(f"Unexpected IQOS update failure: {err}") from err
 
     async def async_set_brightness(self, level: str) -> None:
@@ -87,7 +97,9 @@ class IqosCoordinator(DataUpdateCoordinator[IqosData]):
     async def async_set_vibration_setting(self, key: str, enabled: bool) -> None:
         """Set one vibration setting then refresh state."""
         if self.data is None:
-            raise UpdateFailed("Cannot update IQOS vibration setting before data is loaded")
+            raise UpdateFailed(
+                "Cannot update IQOS vibration setting before data is loaded"
+            )
         await self.client.async_set_vibration_setting(self.data, key, enabled)
         await self.async_request_refresh()
 
