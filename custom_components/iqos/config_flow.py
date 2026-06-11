@@ -19,6 +19,21 @@ from .protocol import IQOS_CORE_SERVICE_UUID, is_iqos_name, model_from_local_nam
 SCAN_SECONDS = 12
 NEARBY_DEVICE_LIMIT = 12
 
+MENU_MANUAL = "Enter Bluetooth address manually"
+MENU_PAIRING_GUIDE = "Check Bluetooth again"
+MENU_SEARCH = "Search Bluetooth devices"
+MENU_SEARCH_AGAIN = "Search again"
+MENU_SELECT_NEARBY = "Select a nearby Bluetooth device"
+
+PAIRING_GUIDE_MENU = {
+    "search": MENU_SEARCH,
+    "manual": MENU_MANUAL,
+}
+BLUETOOTH_UNAVAILABLE_MENU = {
+    "pairing_guide": MENU_PAIRING_GUIDE,
+    "manual": MENU_MANUAL,
+}
+
 
 class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle an IQOS config flow."""
@@ -84,12 +99,12 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not self._has_connectable_bluetooth():
             return self.async_show_menu(
                 step_id="bluetooth_unavailable",
-                menu_options=["pairing_guide", "manual"],
+                menu_options=BLUETOOTH_UNAVAILABLE_MENU,
             )
 
         return self.async_show_menu(
             step_id="pairing_guide",
-            menu_options=["search", "manual"],
+            menu_options=PAIRING_GUIDE_MENU,
         )
 
     async def async_step_search(
@@ -99,7 +114,7 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not self._has_connectable_bluetooth():
             return self.async_show_menu(
                 step_id="bluetooth_unavailable",
-                menu_options=["pairing_guide", "manual"],
+                menu_options=BLUETOOTH_UNAVAILABLE_MENU,
             )
 
         if self._scan_task is None:
@@ -127,9 +142,15 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self._discovered:
             return await self.async_step_select_device()
 
-        menu_options = ["search", "manual"]
+        menu_options = {
+            "search": MENU_SEARCH_AGAIN,
+            "manual": MENU_MANUAL,
+        }
         if self._nearby:
-            menu_options.insert(0, "select_nearby")
+            menu_options = {
+                "select_nearby": MENU_SELECT_NEARBY,
+                **menu_options,
+            }
 
         return self.async_show_menu(
             step_id="scan_result",
