@@ -24,6 +24,7 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the flow."""
         self._discovery_info: bluetooth.BluetoothServiceInfoBleak | None = None
+        self._discovered: dict[str, str] = {}
 
     async def async_step_bluetooth(
         self, discovery_info: bluetooth.BluetoothServiceInfoBleak
@@ -67,9 +68,56 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle manual setup from the UI."""
-        errors: dict[str, str] = {}
+        """Show setup choices and pairing instructions."""
+        return self.async_show_menu(
+            step_id="user",
+            menu_options=["search", "manual"],
+        )
 
+    async def async_step_search(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Search for nearby IQOS Bluetooth devices."""
+        await bluetooth.async_request_active_scan(self.hass)
+        self._discovered = self._discovered_options()
+
+        if self._discovered:
+            return await self.async_step_select_device()
+
+        return self.async_show_form(
+            step_id="search",
+            data_schema=vol.Schema({}),
+            errors={"base": "no_devices_found"},
+        )
+
+    async def async_step_select_device(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Let the user pick a discovered IQOS device."""
+        if not self._discovered:
+            return await self.async_step_search()
+
+        if user_input is not None:
+            address = user_input[CONF_ADDRESS].strip()
+            await self.async_set_unique_id(_normalize_address(address))
+            self._abort_if_unique_id_configured()
+
+            name = self._name_for_address(address)
+            return self.async_create_entry(
+                title=name,
+                data=_entry_data(address=address, name=name),
+            )
+
+        return self.async_show_form(
+            step_id="select_device",
+            data_schema=vol.Schema({vol.Required(CONF_ADDRESS): vol.In(self._discovered)}),
+            description_placeholders={"count": str(len(self._discovered))},
+        )
+
+    async def async_step_manual(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle manual setup from a Bluetooth address."""
         if user_input is not None:
             address = user_input[CONF_ADDRESS].strip()
             await self.async_set_unique_id(_normalize_address(address))
@@ -81,21 +129,14 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data=_entry_data(address=address, name=name),
             )
 
-        await bluetooth.async_request_active_scan(self.hass)
-        options = self._discovered_options()
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_ADDRESS): vol.In(options) if options else str,
-                vol.Optional(CONF_NAME): str,
-            }
-        )
-        if not options:
-            errors["base"] = "no_devices_found"
-
         return self.async_show_form(
-            step_id="user",
-            data_schema=schema,
-            errors=errors,
+            step_id="manual",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_ADDRESS): str,
+                    vol.Optional(CONF_NAME): str,
+                }
+            ),
         )
 
     @callback
@@ -170,4 +211,3 @@ def _is_iqos_service_info(service_info: bluetooth.BluetoothServiceInfoBleak) -> 
 def _normalize_address(address: str) -> str:
     """Normalize a Bluetooth address for config-entry unique IDs."""
     return address.upper()
-

@@ -44,7 +44,10 @@ Holder-based models expose the extra charge-start vibration setting.
 2. Install the `IQOS` integration.
 3. Restart Home Assistant.
 4. Go to **Settings > Devices & services > Add integration > IQOS**.
-5. Keep each IQOS device nearby and awake while adding it.
+5. Read the pairing guide shown in the IQOS setup wizard.
+6. Select **Search Bluetooth devices**.
+7. Pick the discovered IQOS device from the list.
+8. Keep each IQOS device nearby and awake while adding it.
 
 ## Bluetooth Proxy
 
@@ -70,7 +73,8 @@ ESP32 proxies have a limited number of simultaneous active BLE connections.
 Home Assistant does not need classic phone-style pairing, but the IQOS device
 must be awake and advertising/connectable so the Bluetooth proxy can see it.
 Add one IQOS at a time and keep other IQOS devices switched off or farther away
-during setup.
+during setup. The setup wizard shows these instructions before Bluetooth
+scanning starts, then lists the IQOS devices it found.
 
 For IQOS ILUMA / ILUMA i devices:
 
