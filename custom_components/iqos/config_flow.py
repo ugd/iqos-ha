@@ -276,7 +276,6 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Collect connectable Bluetooth advertisements for a short scan window."""
         self._nearby = {}
         self._discovered = {}
-        iqos_found = asyncio.Event()
 
         @callback
         def _async_discovered_device(
@@ -293,8 +292,6 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "IQOS advertisement received during scan: %s",
                     _service_info_debug(service_info),
                 )
-                if not self._is_configured_address(service_info.address):
-                    iqos_found.set()
 
         unload = bluetooth.async_register_callback(
             self.hass,
@@ -303,10 +300,7 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             bluetooth.BluetoothScanningMode.ACTIVE,
         )
         try:
-            try:
-                await asyncio.wait_for(iqos_found.wait(), timeout=SCAN_SECONDS)
-            except TimeoutError:
-                pass
+            await asyncio.sleep(SCAN_SECONDS)
         finally:
             unload()
 
