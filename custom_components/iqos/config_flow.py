@@ -75,6 +75,12 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Show setup choices and pairing instructions."""
+        if not self._has_connectable_bluetooth():
+            return self.async_show_menu(
+                step_id="bluetooth_unavailable",
+                menu_options=["pairing_guide", "manual"],
+            )
+
         return self.async_show_menu(
             step_id="pairing_guide",
             menu_options=["search", "manual"],
@@ -84,6 +90,12 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Search for nearby IQOS Bluetooth devices."""
+        if not self._has_connectable_bluetooth():
+            return self.async_show_menu(
+                step_id="bluetooth_unavailable",
+                menu_options=["pairing_guide", "manual"],
+            )
+
         await bluetooth.async_request_active_scan(self.hass)
         self._discovered = self._discovered_options()
 
@@ -156,6 +168,11 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             address = service_info.address
             options[address] = f"{_service_info_name(service_info)} ({address})"
         return options
+
+    @callback
+    def _has_connectable_bluetooth(self) -> bool:
+        """Return true when HA has a connectable Bluetooth scanner/proxy."""
+        return bluetooth.async_scanner_count(self.hass, connectable=True) > 0
 
     @callback
     def _name_for_address(self, address: str) -> str:

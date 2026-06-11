@@ -68,6 +68,15 @@ In Home Assistant, the ESPHome device should be online and visible under
 keep them close enough to a proxy and avoid polling too aggressively because
 ESP32 proxies have a limited number of simultaneous active BLE connections.
 
+The setup wizard checks that Home Assistant has at least one connectable
+Bluetooth scanner/proxy before it searches for IQOS devices. If the precheck
+fails, verify that:
+
+- The ESPHome proxy is online in Home Assistant.
+- `bluetooth_proxy.active` is enabled.
+- The proxy appears under **Settings > Devices & services > Bluetooth**.
+- Home Assistant was restarted after adding or updating the proxy.
+
 ## Put IQOS In Bluetooth Pairing Mode
 
 Home Assistant does not need classic phone-style pairing, but the IQOS device

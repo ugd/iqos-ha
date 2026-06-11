@@ -51,6 +51,14 @@
           "search": "Search Bluetooth devices"
         },
         "title": "Set up IQOS"
+      },
+      "bluetooth_unavailable": {
+        "description": "Home Assistant does not currently have a connectable Bluetooth scanner available. IQOS needs an active BLE/GATT connection, so a passive-only Bluetooth proxy is not enough.\n\nCheck this first:\n\n1. Your ESPHome Bluetooth Proxy is online in Home Assistant.\n2. The proxy YAML has `bluetooth_proxy.active: true`.\n3. The Bluetooth integration shows the proxy under **Settings > Devices & services > Bluetooth**.\n4. Restart the ESPHome proxy and Home Assistant if the proxy was just added.\n\nAfter fixing Bluetooth, choose **Check Bluetooth again**. You can still enter a Bluetooth address manually, but the integration will not connect until a connectable Bluetooth proxy is available.",
+        "menu_options": {
+          "manual": "Enter Bluetooth address manually",
+          "pairing_guide": "Check Bluetooth again"
+        },
+        "title": "Bluetooth proxy not ready"
       }
     }
   },
