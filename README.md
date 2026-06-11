@@ -40,6 +40,7 @@ Holder-based models expose the extra charge-start vibration setting.
 ## Installation with HACS
 
 1. In HACS, add this repository as a custom repository of type `Integration`.
+   Use this URL: `https://github.com/ugd/iqos-ha`
 2. Install the `IQOS` integration.
 3. Restart Home Assistant.
 4. Go to **Settings > Devices & services > Add integration > IQOS**.

@@ -13,11 +13,10 @@
   "codeowners": [],
   "config_flow": true,
   "dependencies": ["bluetooth"],
-  "documentation": "https://github.com/djugd/iqos-ha",
+  "documentation": "https://github.com/ugd/iqos-ha",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/djugd/iqos-ha/issues",
+  "issue_tracker": "https://github.com/ugd/iqos-ha/issues",
   "requirements": ["bleak-retry-connector>=3.9.0"],
   "version": "0.1.0"
 }
-
