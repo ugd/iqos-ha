@@ -69,8 +69,14 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Show setup choices and pairing instructions."""
+        return await self.async_step_pairing_guide()
+
+    async def async_step_pairing_guide(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show setup choices and pairing instructions."""
         return self.async_show_menu(
-            step_id="user",
+            step_id="pairing_guide",
             menu_options=["search", "manual"],
         )
 
@@ -84,10 +90,9 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self._discovered:
             return await self.async_step_select_device()
 
-        return self.async_show_form(
+        return self.async_show_menu(
             step_id="search",
-            data_schema=vol.Schema({}),
-            errors={"base": "no_devices_found"},
+            menu_options=["search", "manual"],
         )
 
     async def async_step_select_device(
