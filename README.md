@@ -65,6 +65,37 @@ In Home Assistant, the ESPHome device should be online and visible under
 keep them close enough to a proxy and avoid polling too aggressively because
 ESP32 proxies have a limited number of simultaneous active BLE connections.
 
+## Put IQOS In Bluetooth Pairing Mode
+
+Home Assistant does not need classic phone-style pairing, but the IQOS device
+must be awake and advertising/connectable so the Bluetooth proxy can see it.
+Add one IQOS at a time and keep other IQOS devices switched off or farther away
+during setup.
+
+For IQOS ILUMA / ILUMA i devices:
+
+1. Keep the IQOS close to the Bluetooth proxy.
+2. If it has a holder and pocket charger, place the holder in the charger.
+3. Turn the device off: press and hold the main button for about 5 seconds, then
+   release.
+4. Turn it back on: press and hold the main button again for about 5 seconds,
+   then release.
+5. Wait for the device lights to pulse/blink.
+6. In Home Assistant, go to **Settings > Devices & services > Add integration >
+   IQOS**.
+
+If the device does not appear:
+
+- Move it closer to the ESPHome Bluetooth Proxy.
+- Make sure `bluetooth_proxy.active` is enabled.
+- Remove old IQOS Bluetooth pairings from phones/computers nearby.
+- Restart the IQOS and retry the add flow.
+- Add only one IQOS at a time.
+
+Older IQOS models with a dedicated Bluetooth button can use that button instead:
+press the Bluetooth button for about 3 seconds until the Bluetooth status light
+blinks, then start the Home Assistant add flow.
+
 ## Notes
 
 This integration opens short BLE connections for updates and commands. If a
