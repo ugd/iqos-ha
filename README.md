@@ -46,8 +46,12 @@ Holder-based models expose the extra charge-start vibration setting.
 4. Go to **Settings > Devices & services > Add integration > IQOS**.
 5. Read the pairing guide shown in the IQOS setup wizard.
 6. Select **Search Bluetooth devices**.
-7. Pick the discovered IQOS device from the list.
-8. Keep each IQOS device nearby and awake while adding it.
+7. Wait for the Bluetooth scan to finish.
+8. Pick the discovered IQOS device from the list.
+9. If no IQOS device is found, check the nearby Bluetooth devices shown by the
+   wizard. If the proxy sees other devices but not the IQOS, restart the IQOS
+   and retry. If you recognize the IQOS in the nearby list, select it manually.
+10. Keep each IQOS device nearby and awake while adding it.
 
 ## Bluetooth Proxy
 
@@ -69,8 +73,9 @@ keep them close enough to a proxy and avoid polling too aggressively because
 ESP32 proxies have a limited number of simultaneous active BLE connections.
 
 The setup wizard checks that Home Assistant has at least one connectable
-Bluetooth scanner/proxy before it searches for IQOS devices. If the precheck
-fails, verify that:
+Bluetooth scanner/proxy before it searches for IQOS devices. The scan result
+also shows nearby connectable Bluetooth advertisements with name, address, RSSI,
+service UUIDs, and manufacturer IDs. If the precheck fails, verify that:
 
 - The ESPHome proxy is online in Home Assistant.
 - `bluetooth_proxy.active` is enabled.
@@ -83,7 +88,10 @@ Home Assistant does not need classic phone-style pairing, but the IQOS device
 must be awake and advertising/connectable so the Bluetooth proxy can see it.
 Add one IQOS at a time and keep other IQOS devices switched off or farther away
 during setup. The setup wizard shows these instructions before Bluetooth
-scanning starts, then lists the IQOS devices it found.
+scanning starts, scans for a short window, then lists the IQOS devices it found.
+It does not connect to every nearby Bluetooth device automatically; unknown
+devices are shown as diagnostics and can be selected manually only if you
+recognize the IQOS.
 
 For IQOS ILUMA / ILUMA i devices:
 
