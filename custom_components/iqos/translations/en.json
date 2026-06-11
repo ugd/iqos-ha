@@ -1,0 +1,119 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This IQOS device is already configured.",
+      "not_supported": "This Bluetooth device is not an IQOS device.",
+      "unknown": "Unknown Bluetooth discovery."
+    },
+    "error": {
+      "no_devices_found": "No IQOS devices were discovered. Put the device near a connectable Bluetooth proxy, keep it awake, and retry, or enter the address manually."
+    },
+    "step": {
+      "bluetooth_confirm": {
+        "description": "Add {name} ({address})?",
+        "title": "Set up IQOS"
+      },
+      "user": {
+        "data": {
+          "address": "Bluetooth address",
+          "name": "Name"
+        },
+        "description": "Select a discovered IQOS device, or enter the Bluetooth address manually if it is near a connectable Bluetooth proxy but not listed.",
+        "title": "Set up IQOS"
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "find_my_iqos": {
+        "name": "Find my IQOS"
+      },
+      "lock": {
+        "name": "Lock"
+      },
+      "unlock": {
+        "name": "Unlock"
+      }
+    },
+    "select": {
+      "brightness": {
+        "name": "Brightness",
+        "state": {
+          "high": "High",
+          "low": "Low"
+        }
+      },
+      "flexbattery_mode": {
+        "name": "FlexBattery mode",
+        "state": {
+          "eco": "Eco",
+          "performance": "Performance"
+        }
+      }
+    },
+    "sensor": {
+      "battery_level": {
+        "name": "Battery"
+      },
+      "battery_voltage": {
+        "name": "Battery voltage"
+      },
+      "days_used": {
+        "name": "Days used"
+      },
+      "holder_firmware": {
+        "name": "Holder firmware"
+      },
+      "holder_product_number": {
+        "name": "Holder product number"
+      },
+      "model_number": {
+        "name": "Model number"
+      },
+      "product_number": {
+        "name": "Product number"
+      },
+      "rssi": {
+        "name": "RSSI"
+      },
+      "software_revision": {
+        "name": "Software revision"
+      },
+      "stick_firmware": {
+        "name": "Stick firmware"
+      },
+      "total_smoking_count": {
+        "name": "Total puff count"
+      }
+    },
+    "switch": {
+      "autostart": {
+        "name": "Auto Start"
+      },
+      "flexpuff": {
+        "name": "FlexPuff"
+      },
+      "pause_mode": {
+        "name": "Pause Mode"
+      },
+      "smartgesture": {
+        "name": "Smart Gesture"
+      },
+      "vibration_charging_start": {
+        "name": "Vibration when charging starts"
+      },
+      "vibration_heating_start": {
+        "name": "Vibration when heating starts"
+      },
+      "vibration_manually_terminated": {
+        "name": "Vibration on manual termination"
+      },
+      "vibration_puff_end": {
+        "name": "Vibration near puff end"
+      },
+      "vibration_starting_to_use": {
+        "name": "Vibration when use starts"
+      }
+    }
+  }
+}
