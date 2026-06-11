@@ -276,6 +276,7 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Collect connectable Bluetooth advertisements for a short scan window."""
         self._nearby = {}
         self._discovered = {}
+        scan_started = bluetooth.MONOTONIC_TIME()
 
         @callback
         def _async_discovered_device(
@@ -284,6 +285,12 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         ) -> None:
             """Record Bluetooth devices seen during this flow."""
             if not service_info.connectable:
+                return
+            if service_info.time < scan_started:
+                _LOGGER.debug(
+                    "Ignoring cached IQOS scan advertisement: %s",
+                    _service_info_debug(service_info),
+                )
                 return
 
             self._record_service_info(service_info)
@@ -304,7 +311,6 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         finally:
             unload()
 
-        self._record_current_service_info()
         _LOGGER.debug(
             "Finished IQOS Bluetooth scan: nearby=%s matched=%s",
             len(self._nearby),

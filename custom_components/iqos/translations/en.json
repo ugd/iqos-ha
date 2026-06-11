@@ -9,7 +9,7 @@
       "no_devices_found": "No IQOS devices were discovered. Put the device near a connectable Bluetooth proxy, keep it awake, and retry, or enter the address manually."
     },
     "progress": {
-      "scan_devices": "Scanning with Home Assistant Bluetooth for the full {scan_seconds} seconds. Keep every IQOS you want to add close to the Bluetooth proxy and awake/connectable."
+      "scan_devices": "Fresh Bluetooth scan for the full {scan_seconds} seconds. Cached Home Assistant Bluetooth history is ignored. Keep every IQOS you want to add close to the Bluetooth proxy and awake/connectable."
     },
     "step": {
       "bluetooth_confirm": {
