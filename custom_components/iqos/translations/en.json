@@ -33,26 +33,26 @@
         "title": "Scanning for IQOS"
       },
       "scan_result": {
-        "description": "No IQOS devices were found after scanning for {scan_seconds} seconds.\n\nNearby connectable Bluetooth devices seen:\n\n{nearby_devices}\n\nIf the list is empty, the Bluetooth proxy is not seeing nearby connectable BLE advertisements. Move the IQOS closer to the proxy, make sure `bluetooth_proxy.active: true` is enabled, then search again.\n\nIf other devices appear but the IQOS does not, restart the IQOS and keep it awake/connectable while searching. If you recognize your IQOS in the nearby list, choose **Select a nearby Bluetooth device**.\n\nPairing guide:\n\nILUMA / ILUMA i / ILUMA ONE: turn the device on by holding ON/OFF for about 4 seconds, then release. Wait for the lights to turn on slowly or pulse.\n\nIf it still does not appear, reset Bluetooth advertising: press the device button twice quickly, then press it a third time and hold until the LEDs pulse. Keep the IQOS close to the Bluetooth proxy and start Search again immediately.\n\nDo not connect the IQOS from phone or computer Bluetooth Settings before adding it here. If it was paired before, remove/forget old IQOS pairings from nearby phones and computers, toggle Bluetooth off/on on those devices, then retry Home Assistant search.\n\nThe IQOS App/WebApp is not required for this integration. If you use it only to test whether the IQOS can enter Bluetooth setup mode, start Add device / Connect device there, but do not finish pairing from the phone's Bluetooth Settings. On iPhone, the IQOS WebApp may need a Web Bluetooth browser such as Bluefy in countries where Safari/Chrome cannot use Web Bluetooth.\n\nOlder IQOS models with a Bluetooth button: press the Bluetooth button for about 3 seconds until the Bluetooth status light blinks.",
+        "description": "No new IQOS devices were found after scanning for {scan_seconds} seconds. Already configured IQOS devices are shown below for diagnostics, but are hidden from the add-device list.\n\nNearby connectable Bluetooth devices seen:\n\n{nearby_devices}\n\nIf the list is empty, the Bluetooth proxy is not seeing nearby connectable BLE advertisements. Move the IQOS closer to the proxy, make sure `bluetooth_proxy.active: true` is enabled, then search again.\n\nIf other devices appear but the new IQOS does not, restart the new IQOS and keep it awake/connectable while searching. If you recognize the new IQOS in the nearby list, choose **Select a nearby Bluetooth device**.\n\nPairing guide:\n\nILUMA / ILUMA i / ILUMA ONE: turn the device on by holding ON/OFF for about 4 seconds, then release. Wait for the lights to turn on slowly or pulse.\n\nIf it still does not appear, reset Bluetooth advertising: press the device button twice quickly, then press it a third time and hold until the LEDs pulse. Keep the IQOS close to the Bluetooth proxy and start Search again immediately.\n\nDo not connect the IQOS from phone or computer Bluetooth Settings before adding it here. If it was paired before, remove/forget old IQOS pairings from nearby phones and computers, toggle Bluetooth off/on on those devices, then retry Home Assistant search.\n\nThe IQOS App/WebApp is not required for this integration. If you use it only to test whether the IQOS can enter Bluetooth setup mode, start Add device / Connect device there, but do not finish pairing from the phone's Bluetooth Settings. On iPhone, the IQOS WebApp may need a Web Bluetooth browser such as Bluefy in countries where Safari/Chrome cannot use Web Bluetooth.\n\nOlder IQOS models with a Bluetooth button: press the Bluetooth button for about 3 seconds until the Bluetooth status light blinks.",
         "menu_options": {
           "manual": "Enter Bluetooth address manually",
           "search": "Search again",
           "select_nearby": "Select a nearby Bluetooth device"
         },
-        "title": "No IQOS devices found"
+        "title": "No new IQOS devices found"
       },
       "select_device": {
         "data": {
           "address": "Found IQOS devices"
         },
-        "description": "Found {count} IQOS device(s). Select the device you want to add. If the wrong device is shown, go back, switch off the other IQOS devices nearby, and search again.",
+        "description": "Found {count} new IQOS device(s). Select the device you want to add. Already configured IQOS devices are hidden from this list. If the wrong device is shown, go back, switch off the other IQOS devices nearby, and search again.",
         "title": "Select IQOS"
       },
       "select_nearby": {
         "data": {
           "address": "Nearby Bluetooth devices"
         },
-        "description": "Found {count} nearby connectable Bluetooth device(s). Select your IQOS only if you recognize it from the name, address, or RSSI. Selecting another BLE device will create an IQOS entry that cannot connect.",
+        "description": "Found {count} nearby connectable Bluetooth device(s) that are not already configured. Select your IQOS only if you recognize it from the name, address, or RSSI. Selecting another BLE device will create an IQOS entry that cannot connect.",
         "title": "Select nearby Bluetooth device"
       },
       "user": {

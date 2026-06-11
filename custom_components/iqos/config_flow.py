@@ -169,11 +169,12 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "IQOS scan found no matched devices; nearby devices: %s",
             [_service_info_debug(info) for info in self._sorted_nearby_devices()],
         )
+        nearby_options = self._nearby_options()
         menu_options = {
             "search": MENU_SEARCH_AGAIN,
             "manual": MENU_MANUAL,
         }
-        if self._nearby:
+        if nearby_options:
             menu_options = {
                 "select_nearby": MENU_SELECT_NEARBY,
                 **menu_options,
@@ -219,7 +220,8 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Let the user pick any nearby Bluetooth device as an IQOS candidate."""
-        if not self._nearby:
+        nearby_options = self._nearby_options()
+        if not nearby_options:
             return await self.async_step_scan_result()
 
         if user_input is not None:
@@ -237,9 +239,9 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="select_nearby",
             data_schema=vol.Schema(
-                {vol.Required(CONF_ADDRESS): vol.In(self._nearby_options())}
+                {vol.Required(CONF_ADDRESS): vol.In(nearby_options)}
             ),
-            description_placeholders={"count": str(len(self._nearby))},
+            description_placeholders={"count": str(len(nearby_options))},
         )
 
     async def async_step_manual(
@@ -291,7 +293,8 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "IQOS advertisement received during scan: %s",
                     _service_info_debug(service_info),
                 )
-                iqos_found.set()
+                if not self._is_configured_address(service_info.address):
+                    iqos_found.set()
 
         unload = bluetooth.async_register_callback(
             self.hass,
@@ -324,6 +327,8 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not _is_iqos_service_info(service_info):
                 continue
             address = service_info.address
+            if self._is_configured_address(address):
+                continue
             options[address] = f"{_service_info_name(service_info)} ({address})"
         return options
 
@@ -333,6 +338,7 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return {
             service_info.address: _nearby_device_label(service_info)
             for service_info in self._sorted_nearby_devices()
+            if not self._is_configured_address(service_info.address)
         }
 
     @callback
@@ -342,7 +348,11 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return "No connectable Bluetooth devices were seen."
 
         lines = [
-            _nearby_device_label(service_info, detailed=True)
+            _nearby_device_label(
+                service_info,
+                detailed=True,
+                configured=self._is_configured_address(service_info.address),
+            )
             for service_info in self._sorted_nearby_devices()[:NEARBY_DEVICE_LIMIT]
         ]
         if len(self._nearby) > NEARBY_DEVICE_LIMIT:
@@ -362,6 +372,12 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         address = service_info.address
         self._nearby[address] = service_info
         if _is_iqos_service_info(service_info):
+            if self._is_configured_address(address):
+                _LOGGER.debug(
+                    "Skipping already configured IQOS in selectable results: %s",
+                    _service_info_debug(service_info),
+                )
+                return
             self._discovered[address] = (
                 f"{_service_info_name(service_info)} ({address})"
             )
@@ -391,6 +407,13 @@ class IqosConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _has_connectable_bluetooth(self) -> bool:
         """Return true when HA has a connectable Bluetooth scanner/proxy."""
         return bluetooth.async_scanner_count(self.hass, connectable=True) > 0
+
+    @callback
+    def _is_configured_address(self, address: str) -> bool:
+        """Return true if a Bluetooth address already has an IQOS config entry."""
+        return _normalize_address(address) in self._async_current_ids(
+            include_ignore=False
+        )
 
     @callback
     def _name_for_address(self, address: str) -> str:
@@ -445,11 +468,18 @@ def _advertised_name(service_info: bluetooth.BluetoothServiceInfoBleak) -> str |
 
 @callback
 def _nearby_device_label(
-    service_info: bluetooth.BluetoothServiceInfoBleak, detailed: bool = False
+    service_info: bluetooth.BluetoothServiceInfoBleak,
+    detailed: bool = False,
+    configured: bool = False,
 ) -> str:
     """Return a diagnostic label for a nearby Bluetooth device."""
     name = _advertised_name(service_info) or "Unnamed"
-    iqos_marker = "IQOS match" if _is_iqos_service_info(service_info) else "not matched"
+    if configured:
+        iqos_marker = "already configured"
+    elif _is_iqos_service_info(service_info):
+        iqos_marker = "IQOS match"
+    else:
+        iqos_marker = "not matched"
     rssi = service_info.rssi if service_info.rssi is not None else "unknown"
     label = f"{name} ({service_info.address}), RSSI {rssi}, {iqos_marker}"
     if not detailed:
